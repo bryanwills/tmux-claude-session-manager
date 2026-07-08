@@ -30,7 +30,7 @@ export FZF_DEFAULT_OPTS=''
 # beat so the supervisor has dropped the agent from `claude agents --json`.
 sel=$("$DIR/agents.sh" | fzf --ansi --delimiter='\t' --with-nth=5,6,7,8 \
   --reverse --cycle --header='Claude agents · enter: jump · ctrl-x: kill' \
-  --preview='tmux capture-pane -ept {2}' --preview-window='right,62%,wrap' \
+  --preview='tmux capture-pane -ept {2}' --preview-window='up,70%,follow' \
   --bind="ctrl-x:execute-silent(kill {3})+reload(sleep 0.3; $self --list)")
 
 [ -z "$sel" ] && exit 0
