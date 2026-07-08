@@ -28,7 +28,7 @@ the picker reads it — there are no hooks to install.
 
 - **tmux ≥ 3.2** (for `display-popup`)
 - **[fzf](https://github.com/junegunn/fzf)** — the picker UI
-- **[jq](https://jqlang.github.io/jq/)** — parses `claude agents --json`
+- **[jq](https://jqlang.org/)** — parses `claude agents --json`
 - **[Claude Code](https://claude.com/claude-code)** ≥ 2.1.139 — for the
   `claude agents` command (`claude --version` to check)
 - bash; macOS or Linux
