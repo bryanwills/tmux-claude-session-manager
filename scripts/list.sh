@@ -9,33 +9,32 @@ prefix="$(get_tmux_option @claude_session_prefix 'claude-')"
 w="$(get_tmux_option @claude_popup_width '90%')"
 h="$(get_tmux_option @claude_popup_height '90%')"
 
-# The session of a client attached to a prefixed session — i.e. the popup we are
-# inside, if any. Empty when invoked from a normal (non-popup) pane.
-nested_session() {
-  tmux list-clients -F '#{client_name} #{session_name}' 2>/dev/null |
-    awk -v p="$prefix" 'index($2, p) == 1 { print $2; exit }'
-}
+# The client that pressed the key, and the session it is currently attached to.
+# Looked up by exact client_name match rather than "first client anywhere that
+# looks nested" — with more than one client attached (e.g. a stray popup left
+# open in another window), a global scan can grab an unrelated client's session
+# and detach it instead of the one this invocation actually cares about.
+me="${1:-}"
+my_session="$(tmux list-clients -F '#{client_name} #{session_name}' 2>/dev/null |
+  awk -v me="$me" '$1 == me { print $2; exit }')"
 
-# A client NOT attached to a prefixed session — the outer client that should host
-# the picker popup.
-host_client() {
-  tmux list-clients -F '#{client_name} #{session_name}' 2>/dev/null |
-    awk -v p="$prefix" 'index($2, p) != 1 { print $1; exit }'
-}
-
-# If we are inside a session popup, close it (detach its client)
-sess="$(nested_session)"
-if [ -n "$sess" ]; then
-  tmux detach-client -s "$sess"
-  # Wait until the session is gone
+case "$my_session" in
+"$prefix"*)
+  # We are inside a session popup: close it, then reopen the picker on the
+  # outer client that originally opened it.
+  tmux detach-client -s "$my_session"
   for _ in $(seq 1 100); do
-    [ -z "$(nested_session)" ] && break
+    tmux list-clients -F '#{session_name}' 2>/dev/null | grep -qx "$my_session" || break
     sleep 0.05
   done
-fi
-
-host="$(host_client)"
-tmux set-option -g @claude_parent "$host"
+  host="$(tmux show-options -gqv @claude_parent 2>/dev/null)"
+  ;;
+*)
+  # Normal case: this client is already the host.
+  host="$me"
+  tmux set-option -g @claude_parent "$host"
+  ;;
+esac
 
 # Host the picker on the outer client. -c is honored because that client has no
 # popup open now; fall back to the default client if none was found.
